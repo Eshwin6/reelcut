@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f0f12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon.svg">
+<title>ReelCut</title>
+<style>
+:root{--bg:#0f0f12;--card:#1a1a20;--line:#2a2a33;--text:#f4f4f6;--muted:#9a9aa6;--accent:#e8336b;--ok:#2fbf71;--warn:#f0a63a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:env(safe-area-inset-top) 0 calc(80px + env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;justify-content:space-between;padding:16px}
+h1{font-size:22px;margin:0;letter-spacing:-.02em}h1 b{color:var(--accent)}
+h2{font-size:15px;color:var(--muted);font-weight:600;margin:24px 16px 8px;text-transform:uppercase;letter-spacing:.06em}
+.pad{padding:0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin:0 16px 12px}
+label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
+select,input,textarea{width:100%;background:#111116;color:var(--text);border:1px solid var(--line);border-radius:12px;padding:12px;font:inherit}
+textarea{min-height:90px;resize:vertical}
+button{font:inherit;border:0;border-radius:12px;padding:12px 16px;background:#2a2a33;color:var(--text);font-weight:600}
+button.primary{background:var(--accent);color:#fff}
+button:disabled{opacity:.5}
+.big{width:100%;padding:22px;font-size:19px;border-radius:18px;display:flex;align-items:center;justify-content:center;gap:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap}.row>button{flex:1 1 auto}
+.toggle{display:flex;align-items:center;justify-content:space-between;margin-top:14px}
+.toggle input{width:auto;transform:scale(1.4)}
+.job{display:flex;gap:12px;align-items:center}
+.job img,.job .ph{width:56px;height:100px;border-radius:8px;object-fit:cover;background:#25252d;flex:none}
+.job .meta{flex:1;min-width:0}.job .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill{display:inline-block;font-size:12px;padding:3px 8px;border-radius:99px;background:#2a2a33;color:var(--muted);margin-top:4px}
+.pill.done{background:rgba(47,191,113,.15);color:var(--ok)}.pill.failed{background:rgba(232,51,107,.15);color:var(--accent)}
+.pill.processing,.pill.queued{background:rgba(240,166,58,.15);color:var(--warn)}
+.bar{height:6px;background:#2a2a33;border-radius:9px;overflow:hidden;margin-top:12px}.bar i{display:block;height:100%;background:var(--accent);width:0}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:rgba(15,15,18,.95);border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom));backdrop-filter:blur(10px)}
+nav button{flex:1;background:none;color:var(--muted)}nav button.on{color:var(--text)}
+.sheet{position:fixed;inset:0;background:var(--bg);overflow:auto;z-index:5;padding:env(safe-area-inset-top) 0 40px;display:none}
+.sheet.open{display:block}
+video{width:100%;max-height:62vh;border-radius:16px;background:#000;display:block}
+.muted{color:var(--muted);font-size:14px}.err{color:var(--accent);font-size:14px;white-space:pre-wrap}
+.hidden{display:none!important}
+.tag{display:inline-block;background:#25252d;border-radius:8px;padding:2px 8px;margin:2px;font-size:13px}
+</style>
+</head>
+<body>
+
+<section id="login" class="hidden">
+  <header><h1>Reel<b>Cut</b></h1></header>
+  <div class="card"><label>Password</label><input id="pw" type="password" autocomplete="current-password">
+  <p><button class="primary big" onclick="doLogin()">Log in</button></p><div id="loginErr" class="err"></div></div>
+</section>
+
+<section id="home" class="hidden">
+  <header><h1>Reel<b>Cut</b></h1><span id="health" class="muted"></span></header>
+  <div class="card">
+    <input id="file" type="file" accept="video/*" multiple class="hidden">
+    <button class="primary big" id="upBtn" onclick="file.click()">⬆ Upload footage</button>
+    <div id="upWrap" class="hidden"><div class="bar"><i id="upBar"></i></div><p class="muted" id="upTxt"></p></div>
+    <label style="margin-top:18px">Brand / company</label>
+    <select id="brand"></select>
+    <label>Type of video</label>
+    <select id="vtype">
+      <option value="">Let AI decide</option>
+      <option value="promo">Brand promo / UGC ad</option>
+      <option value="tips">Tips / "things to stop doing"</option>
+      <option value="story">Storytime</option>
+      <option value="motivation">Motivation / hustle</option>
+      <option value="dayinlife">Day in the life</option>
+    </select>
+    <label>Music</label>
+    <select id="music"></select>
+    <label>Tell it anything about this video (optional)</label>
+    <input id="notes" placeholder="e.g. mention the free trial, make the hook about money">
+    <div class="toggle"><span>Add hashtags</span><input id="tagsOn" type="checkbox" checked></div>
+    <input id="extraTags" placeholder="Extra hashtags for this one, e.g. #ad #sidehustle" style="margin-top:8px">
+    <details style="margin-top:14px"><summary class="muted">Write the hook / caption myself (optional)</summary>
+      <label>Hook text at the top (leave blank and it writes one)</label>
+      <input id="hookIn" placeholder="e.g. What NOT to do if you have MCAS 🚨">
+      <label>Post caption (leave blank and it writes one)</label>
+      <textarea id="capIn" placeholder="Your caption. Hashtags are added after it."></textarea>
+    </details>
+    <div class="toggle"><span>Auto-post when ready</span><input id="auto" type="checkbox"></div>
+  </div>
+  <h2>Videos</h2>
+  <div id="jobs"></div>
+  <h2>Accounts</h2>
+  <div class="card" id="accounts"></div>
+</section>
+
+<section id="brands" class="hidden">
+  <header><h1>Brands</h1><button onclick="editBrand()">+ New</button></header>
+  <p class="pad muted">Each brand keeps its hashtags and caption style. Pick one when you upload.</p>
+  <div id="brandList"></div>
+</section>
+
+<section id="musicView" class="hidden">
+  <header><h1>Music</h1></header>
+  <p class="pad muted">Add songs you have the rights to use (royalty-free). Set a mood so "Pick for me" can choose the right one. Trending TikTok/Instagram sounds can only be added inside those apps.</p>
+  <div class="card">
+    <label>Song name</label><input id="mName" placeholder="e.g. Upbeat lofi">
+    <label>Mood</label><input id="mMood" placeholder="e.g. upbeat, chill, motivational, emotional">
+    <p style="margin-bottom:0"><input id="mFile" type="file" accept="audio/*" class="hidden">
+    <button class="primary big" onclick="mFile.click()">＋ Add a song</button></p>
+  </div>
+  <div id="musicList"></div>
+</section>
+
+<div id="jobSheet" class="sheet">
+  <header><button onclick="closeSheet('jobSheet')">‹ Back</button><span id="jsStatus" class="pill"></span></header>
+  <div class="pad"><video id="jsVideo" controls playsinline></video></div>
+  <div id="jsBody"></div>
+</div>
+
+<div id="brandSheet" class="sheet">
+  <header><button onclick="closeSheet('brandSheet')">‹ Back</button><button id="bDel" onclick="delBrand()">Delete</button></header>
+  <div class="card">
+    <label>Name</label><input id="bName" placeholder="e.g. Juno app">
+    <label>Hashtags (always added)</label><textarea id="bTags" placeholder="#junoapp #mcas #chronicillness"></textarea>
+    <label>About the brand / what to say in captions</label><textarea id="bNotes" placeholder="Free symptom tracker app, CTA: download free in the App Store"></textarea>
+    <label>Caption examples (paste a few you like)</label><textarea id="bEx" style="min-height:140px"></textarea>
+    <p><button class="primary big" onclick="saveBrand()">Save</button></p>
+  </div>
+</div>
+
+<nav id="nav" class="hidden"><button id="navHome" class="on" onclick="show('home')">🎬 Videos</button><button id="navBrands" onclick="show('brands')">🏷 Brands</button><button id="navMusic" onclick="show('musicView')">🎵 Music</button></nav>
+
+<script>
+const $ = id => document.getElementById(id);
+let brands = [], tracks = [], jobs = [], status = {accounts:{}}, openJob = null, editingBrand = null;
+const store = {get(k){try{return localStorage.getItem(k)}catch(e){return null}}, set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, {credentials: 'same-origin', headers: opts.body && !(opts.body instanceof FormData) ? {'Content-Type': 'application/json'} : {}, ...opts});
+  if (r.status === 401) { show('login'); throw new Error('login'); }
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
+  return r.json();
+}
+
+function show(view) {
+  for (const v of ['login', 'home', 'brands', 'musicView']) $(v).classList.toggle('hidden', v !== view);
+  $('navMusic').classList.toggle('on', view === 'musicView');
+  $('nav').classList.toggle('hidden', view === 'login');
+  $('navHome').classList.toggle('on', view === 'home');
+  $('navBrands').classList.toggle('on', view === 'brands');
+}
+
+async function doLogin() {
+  try { await api('/api/login', {method: 'POST', body: JSON.stringify({password: $('pw').value})}); boot(); }
+  catch (e) { $('loginErr').textContent = 'Wrong password'; }
+}
+
+async function boot() {
+  status = await api('/api/status');
+  show('home');
+  renderAccounts();
+  await loadBrands(); await loadMusic(); await loadJobs();
+  setInterval(loadJobs, 4000);
+}
+
+async function loadBrands() {
+  brands = await api('/api/brands');
+  const last = store.get('brand');
+  $('brand').innerHTML = '<option value="">No brand (personal)</option>' + brands.map(b => `<option value="${b.id}">${esc(b.name)}</option>`).join('');
+  if (brands.some(b => b.id === last)) $('brand').value = last;
+  $('brandList').innerHTML = brands.length ? brands.map(b => `<div class="card" onclick="editBrand('${b.id}')"><b>${esc(b.name)}</b><div>${b.hashtags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div></div>`).join('') : '<p class="pad muted">No brands yet.</p>';
+}
+
+function renderAccounts() {
+  const a = status.accounts;
+  $('health').textContent = [a.instagram?.connected ? 'IG ✓' : '', a.tiktok?.connected ? 'TikTok ✓' : ''].filter(Boolean).join(' · ');
+  $('accounts').innerHTML = ['instagram', 'tiktok'].map(k => {
+    const x = a[k] || {}, label = k === 'instagram' ? 'Instagram' : 'TikTok';
+    if (x.connected) return `<div class="toggle" style="margin:0 0 10px"><span>${label} ✅ ${esc(x.name)}</span><button onclick="disconnect('${k}')">Disconnect</button></div>`;
+    if (x.can_connect) return `<p style="margin:0 0 10px"><a href="/auth/${k}/start"><button class="primary" style="width:100%">Connect ${label}</button></a></p>`;
+    return `<p class="muted" style="margin:0 0 10px">${label}: not set up yet (see setup guide). Use Share for now.</p>`;
+  }).join('');
+}
+async function disconnect(k) { if (!confirm('Disconnect ' + k + '?')) return; await api(`/api/accounts/${k}/disconnect`, {method: 'POST'}); status = await api('/api/status'); renderAccounts(); }
+
+async function loadMusic() {
+  tracks = await api('/api/music');
+  const last = store.get('music') || 'none';
+  $('music').innerHTML = '<option value="none">No music</option>' + (tracks.length ? '<option value="auto">Pick for me (matches the mood)</option>' : '') + tracks.map(t => `<option value="${t.id}">${esc(t.name)}${t.mood ? ' · ' + esc(t.mood) : ''}</option>`).join('');
+  $('music').value = [...$('music').options].some(o => o.value === last) ? last : 'none';
+  $('musicList').innerHTML = tracks.length ? tracks.map(t => `<div class="card"><b>${esc(t.name)}</b> <span class="muted">${esc(t.mood)}</span><audio controls preload="none" src="/music/${t.id}" style="width:100%;margin-top:8px"></audio><p style="margin:8px 0 0"><button onclick="delMusic('${t.id}')">Remove</button></p></div>`).join('') : '<p class="pad muted">No songs yet.</p>';
+}
+$('mFile').onchange = async () => {
+  const f = $('mFile').files[0]; if (!f) return;
+  const fd = new FormData(); fd.append('file', f, f.name); fd.append('name', $('mName').value); fd.append('mood', $('mMood').value);
+  toast('Uploading song…'); await api('/api/music', {method: 'POST', body: fd});
+  $('mFile').value = ''; $('mName').value = ''; $('mMood').value = ''; loadMusic(); toast('Song added');
+};
+async function delMusic(id) { if (!confirm('Remove this song?')) return; await api('/api/music/' + id, {method: 'DELETE'}); loadMusic(); }
+
+async function loadJobs() {
+  jobs = await api('/api/jobs');
+  $('jobs').innerHTML = jobs.length ? jobs.map(j => `
+    <div class="card job" onclick="openJobSheet('${j.id}')">
+      ${j.status === 'done' ? `<img src="/files/${j.id}/thumb.jpg" alt="">` : '<div class="ph"></div>'}
+      <div class="meta"><div class="t">${esc(j.result?.hook_title || j.files.join(', '))}</div>
+      <span class="pill ${j.status}">${j.status === 'done' ? 'Ready' : esc(j.stage)}</span>
+      ${Object.entries(j.posts || {}).map(([k, v]) => `<span class="pill ${v.status === 'posted' ? 'done' : v.status === 'failed' ? 'failed' : 'processing'}">${k === 'instagram' ? 'IG' : 'TikTok'}: ${v.status}</span>`).join(' ')}
+      </div></div>`).join('') : '<p class="pad muted">Upload your raw footage and it shows up here once it\'s edited.</p>';
+  if (openJob) renderJob(jobs.find(j => j.id === openJob));
+}
+
+$('brand').onchange = () => store.set('brand', $('brand').value);
+$('auto').checked = store.get('auto') === '1';
+$('vtype').value = store.get('vtype') || ''; $('vtype').onchange = () => store.set('vtype', $('vtype').value);
+$('music').onchange = () => store.set('music', $('music').value);
+$('tagsOn').checked = store.get('tagsOn') !== '0'; $('tagsOn').onchange = () => store.set('tagsOn', $('tagsOn').checked ? '1' : '0');
+$('auto').onchange = () => store.set('auto', $('auto').checked ? '1' : '0');
+
+$('file').onchange = () => {
+  const files = [...$('file').files];
+  if (!files.length) return;
+  const fd = new FormData();
+  files.forEach(f => fd.append('files', f, f.name));
+  fd.append('brand_id', $('brand').value);
+  fd.append('auto_post', $('auto').checked ? '1' : '');
+  fd.append('notes', $('notes').value);
+  fd.append('video_type', $('vtype').value);
+  fd.append('music', $('music').value);
+  fd.append('hashtags_on', $('tagsOn').checked ? '1' : '');
+  fd.append('extra_hashtags', $('extraTags').value);
+  fd.append('hook', $('hookIn').value);
+  fd.append('caption', $('capIn').value);
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', '/api/jobs');
+  $('upWrap').classList.remove('hidden'); $('upBtn').disabled = true;
+  xhr.upload.onprogress = e => { const p = Math.round(e.loaded / e.total * 100); $('upBar').style.width = p + '%'; $('upTxt').textContent = `Uploading ${files.length} clip${files.length > 1 ? 's' : ''}… ${p}%`; };
+  xhr.onload = () => { $('upWrap').classList.add('hidden'); $('upBtn').disabled = false; $('file').value = ''; $('notes').value = ''; $('extraTags').value = ''; $('hookIn').value = ''; $('capIn').value = ''; loadJobs(); };
+  xhr.onerror = () => { $('upTxt').textContent = 'Upload failed. Check your connection and try again.'; $('upBtn').disabled = false; };
+  xhr.send(fd);
+};
+
+function openJobSheet(id) { openJob = id; $('jobSheet').classList.add('open'); $('jsVideo').removeAttribute('src'); renderJob(jobs.find(j => j.id === id), true); }
+function closeSheet(id) { $(id).classList.remove('open'); if (id === 'jobSheet') { openJob = null; $('jsVideo').pause(); } }
+
+function renderJob(j, first) {
+  if (!j) return;
+  $('jsStatus').className = 'pill ' + j.status; $('jsStatus').textContent = j.status === 'done' ? 'Ready' : j.stage;
+  $('jsVideo').classList.toggle('hidden', j.status !== 'done');
+  if (j.status === 'done' && !$('jsVideo').getAttribute('src')) $('jsVideo').src = `/files/${j.id}/final.mp4`;
+  if (!first && document.activeElement === $('cap')) return; // don't wipe typing
+  const r = j.result, p = {instagram: status.accounts.instagram?.connected, tiktok: status.accounts.tiktok?.connected}, posts = j.posts || {};
+  const postLine = k => posts[k] ? `<div class="${posts[k].status === 'failed' ? 'err' : 'muted'}">${k === 'instagram' ? 'Instagram' : 'TikTok'}: ${posts[k].status}${posts[k].error ? ' — ' + esc(posts[k].error) : ''}</div>` : '';
+  $('jsBody').innerHTML = j.status === 'failed' ? `<div class="card"><div class="err">${esc(j.error || 'Something went wrong')}</div><p><button onclick="redo('${j.id}')">Try again</button></p></div>`
+    : j.status !== 'done' ? `<div class="card"><p>Editing your video… <b>${esc(j.stage)}</b></p><p class="muted">You can close the app, it keeps working.</p></div>`
+    : `<div class="card">
+        <div class="muted">${r.raw_seconds}s raw → ${r.final_seconds}s · ${r.cuts} cuts${r.music ? ' · 🎵 ' + esc(r.music) : ''}</div>
+        <label>Post caption</label><textarea id="cap" style="min-height:180px">${esc(r.caption)}</textarea>
+        <div class="row" style="margin-top:8px"><button onclick="saveCap('${j.id}')">Save</button><button onclick="copyCap()">Copy</button></div>
+      </div>
+      <div class="card">
+        <div class="row">
+          <button class="primary" ${p.instagram ? '' : 'disabled'} onclick="post('${j.id}',['instagram'])">Post to Instagram</button>
+          <button class="primary" ${p.tiktok ? '' : 'disabled'} onclick="post('${j.id}',['tiktok'])">Post to TikTok</button>
+        </div>
+        ${postLine('instagram')}${postLine('tiktok')}
+        ${!p.instagram || !p.tiktok ? '<p class="muted">Accounts not connected yet. Use Share to send it to the app instead.</p>' : ''}
+        <div class="row" style="margin-top:8px"><button onclick="share('${j.id}')">Share…</button><a href="/files/${j.id}/final.mp4" download style="flex:1"><button style="width:100%">Download</button></a></div>
+      </div>
+      <div class="pad row"><button onclick="redo('${j.id}')">Re-edit</button><button onclick="delJob('${j.id}')">Delete</button></div>`;
+}
+
+async function saveCap(id) { await api(`/api/jobs/${id}/caption`, {method: 'POST', body: JSON.stringify({caption: $('cap').value})}); toast('Saved'); }
+async function copyCap() { await navigator.clipboard.writeText($('cap').value); toast('Caption copied'); }
+async function post(id, targets) { await saveCap(id); await api(`/api/jobs/${id}/post`, {method: 'POST', body: JSON.stringify({targets})}); toast('Posting…'); loadJobs(); }
+async function redo(id) { await api(`/api/jobs/${id}/redo`, {method: 'POST'}); loadJobs(); }
+async function delJob(id) { if (!confirm('Delete this video?')) return; await api(`/api/jobs/${id}`, {method: 'DELETE'}); closeSheet('jobSheet'); loadJobs(); }
+async function share(id) {
+  try { await navigator.clipboard.writeText($('cap').value); } catch (e) {}
+  const blob = await (await fetch(`/files/${id}/final.mp4`)).blob();
+  const f = new File([blob], `reel-${id}.mp4`, {type: 'video/mp4'});
+  if (navigator.canShare && navigator.canShare({files: [f]})) { await navigator.share({files: [f]}); toast('Caption copied, paste it in the app'); }
+  else location.href = `/files/${id}/final.mp4`;
+}
+
+function editBrand(id) {
+  editingBrand = brands.find(b => b.id === id) || {};
+  $('bName').value = editingBrand.name || ''; $('bTags').value = (editingBrand.hashtags || []).join(' ');
+  $('bNotes').value = editingBrand.notes || ''; $('bEx').value = editingBrand.caption_examples || '';
+  $('bDel').classList.toggle('hidden', !editingBrand.id);
+  $('brandSheet').classList.add('open');
+}
+async function saveBrand() {
+  await api('/api/brands', {method: 'POST', body: JSON.stringify({id: editingBrand.id, name: $('bName').value.trim() || 'Untitled', hashtags: $('bTags').value.split(/[\s,]+/), notes: $('bNotes').value, caption_examples: $('bEx').value})});
+  closeSheet('brandSheet'); loadBrands();
+}
+async function delBrand() { if (!confirm('Delete this brand?')) return; await api('/api/brands/' + editingBrand.id, {method: 'DELETE'}); closeSheet('brandSheet'); loadBrands(); }
+
+function toast(t) { const d = document.createElement('div'); d.textContent = t; d.style.cssText = 'position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:#fff;color:#000;padding:10px 16px;border-radius:99px;z-index:9;font-weight:600'; document.body.append(d); setTimeout(() => d.remove(), 1800); }
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c])); }
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+boot().catch(() => {});
+</script>
+</body>
+</html>
