@@ -1,0 +1,17 @@
+services:
+  reelcut:
+    build:
+      context: .
+      args:
+        CACHEBUST: ${CACHEBUST:-1}
+    image: reelcut
+    container_name: reelcut
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:7860:7860"   # only reachable through Tailscale, not your local network
+    env_file: .env
+    volumes:
+      - reelcut-data:/data      # brands, music, connected accounts and videos survive rebuilds
+
+volumes:
+  reelcut-data:
